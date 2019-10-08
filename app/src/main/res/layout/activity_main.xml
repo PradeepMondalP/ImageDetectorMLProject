@@ -15,12 +15,14 @@
         android:layout_centerHorizontal="true"
         />
 
+
     <ImageButton
-        android:id="@+id/id_camBtn"
-        android:src="@drawable/ic_camera_alt_black_24dp"
+        android:id="@+id/id_camBtn2"
+        android:src="@drawable/cam2"
         android:layout_width="wrap_content"
-        android:layout_margin="5dp"
         android:layout_toRightOf="@+id/id_selet_pic"
+        android:onClick="captureImage"
+        android:layout_margin="5dp"
         android:layout_height="wrap_content"/>
 
         <ScrollView
@@ -48,14 +50,7 @@
 
             </LinearLayout>
 
-
-
-
         </ScrollView>
-
-
-
-
 
 
     <Button
@@ -66,4 +61,15 @@
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         />
+
+    <Button
+        android:onClick="show_image"
+        android:text="Show Image"
+        android:layout_toRightOf="@+id/id_copy_pic"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        />
+
 </RelativeLayout>

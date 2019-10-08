@@ -3,6 +3,7 @@ package com.example.machinnlearningproject2;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -14,6 +15,7 @@ import android.graphics.Point;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.view.View;
 import android.widget.Button;
@@ -35,17 +37,22 @@ import com.squareup.picasso.Picasso;
 import org.w3c.dom.Text;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
     private final int TEXT_RECO_REQ_CODE=100;
-    private Button selectBtn , copyBtn;
+    private Button selectBtn , copyBtn ;
     private TextView textView;
     private ImageView imageView;
-    private ImageButton camBtn;
     private Bitmap mSelectedImage;
+
+    private String currentImagePath = null;
+    private static final int IMAGE_REQUEST_CODE=1;
 
 
     @Override
@@ -53,12 +60,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-
         selectBtn = (Button)findViewById(R.id.id_selet_pic);
         copyBtn = (Button)findViewById(R.id.id_copy_pic);
         textView = (TextView)findViewById(R.id.id_tv);
         imageView = (ImageView)findViewById(R.id.id_imageView);
-        camBtn = (ImageButton)findViewById(R.id.id_camBtn);
+
 
         selectBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -67,15 +73,7 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent();
                 intent.setAction(Intent.ACTION_PICK);
                 intent.setType("image/*");
-                startActivityForResult(intent , 1);
-            }
-        });
-
-        camBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                openCam();
+                startActivityForResult(intent , 10 );
             }
         });
 
@@ -100,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if(requestCode==1  && resultCode==RESULT_OK && data!=null)
+        if(requestCode==10  && resultCode==RESULT_OK && data!=null)
         {
             Uri myImage = data.getData();
             convertingImageToTextFullProcess(getApplicationContext() , myImage);
@@ -108,8 +106,6 @@ public class MainActivity extends AppCompatActivity {
         else if(requestCode==TEXT_RECO_REQ_CODE  && resultCode==RESULT_OK && data!=null)
             {
                 mSelectedImage = (Bitmap)data.getExtras().get("data");
-                textRecognization(mSelectedImage);
-
             }
         else if(resultCode==RESULT_CANCELED)
         {
@@ -122,6 +118,7 @@ public class MainActivity extends AppCompatActivity {
                     "failed to capture image..", Toast.LENGTH_SHORT).show();
         }
     }
+
 
     private void convertingImageToTextFullProcess(Context applicationContext, Uri myImage) {
         try {
@@ -151,12 +148,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void openCam()
-    {
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        startActivityForResult(intent , TEXT_RECO_REQ_CODE);
-    }
-
     private void textRecognization(Bitmap mSelectedImage) {
 
         FirebaseVisionImage image = null;
@@ -183,6 +174,7 @@ public class MainActivity extends AppCompatActivity {
                 });
 
     }
+
     public void processImageToText(FirebaseVisionText texts)
     {
         String text = texts.getText();
@@ -193,4 +185,48 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void captureImage(View view) throws IOException {
+
+        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+
+        if(cameraIntent.resolveActivity(getPackageManager()) !=null)
+        {
+
+            File imageFile = null;
+            imageFile = getImageFile();
+
+            if(imageFile!=null)
+            {
+
+                Uri imageUri = FileProvider.getUriForFile(this ,
+                        "com.example.android.fileprovider",imageFile);
+
+                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT,imageUri);
+                startActivityForResult(cameraIntent , IMAGE_REQUEST_CODE);
+
+            }
+        }
+    }
+
+    private File getImageFile() throws IOException
+    {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageName = "jpg_"+timeStamp+"_";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+
+        File imageFile = File.createTempFile( imageName , ".jpg" , storageDir);
+        currentImagePath = imageFile.getAbsolutePath();
+
+        return imageFile;
+    }
+
+    public void show_image(View view) {
+        Bitmap bitmap = BitmapFactory.decodeFile(currentImagePath);
+        imageView.setImageBitmap(bitmap);
+        textRecognization(bitmap);
+
+    }
 }
+
+
+
