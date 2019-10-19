@@ -1,10 +1,10 @@
 {
   "project_info": {
-    "project_number": "812468993753",
-    "firebase_url": "https://machine-learning-project-a7250.firebaseio.com",
+    "project_number": "812468993753" ,
+    "firebase_url": "https://machine-learning-project-a7250.firebaseio.com" ,
     "project_id": "machine-learning-project-a7250",
     "storage_bucket": "machine-learning-project-a7250.appspot.com"
-  },
+  } ,
   "client": [
     {
       "client_info": {

@@ -33,6 +33,8 @@ import com.google.firebase.ml.vision.text.FirebaseVisionText;
 import com.google.firebase.ml.vision.text.FirebaseVisionTextRecognizer;
 import com.google.firebase.ml.vision.text.RecognizedLanguage;
 import com.squareup.picasso.Picasso;
+import com.theartofdev.edmodo.cropper.CropImage;
+import com.theartofdev.edmodo.cropper.CropImageView;
 
 import org.w3c.dom.Text;
 
@@ -45,7 +47,6 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private final int TEXT_RECO_REQ_CODE=100;
     private Button selectBtn , copyBtn ;
     private TextView textView;
     private ImageView imageView;
@@ -53,6 +54,9 @@ public class MainActivity extends AppCompatActivity {
 
     private String currentImagePath = null;
     private static final int IMAGE_REQUEST_CODE=1;
+    private static final int GALLERY_REQUEST_CODE=10;
+
+    private Uri myImage;
 
 
     @Override
@@ -60,11 +64,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        selectBtn = (Button)findViewById(R.id.id_selet_pic);
-        copyBtn = (Button)findViewById(R.id.id_copy_pic);
-        textView = (TextView)findViewById(R.id.id_tv);
-        imageView = (ImageView)findViewById(R.id.id_imageView);
-
+       initialize();
 
         selectBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -73,7 +73,12 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent();
                 intent.setAction(Intent.ACTION_PICK);
                 intent.setType("image/*");
-                startActivityForResult(intent , 10 );
+
+
+                System.out.println("Pradeep........................");
+                startActivityForResult(intent , GALLERY_REQUEST_CODE );
+
+                System.out.println("mondal.....................");
             }
         });
 
@@ -81,37 +86,57 @@ public class MainActivity extends AppCompatActivity {
         copyBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-                String copiedText = textView.getText().toString();
-
-                ClipboardManager clipboardManager = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
-                ClipData data = ClipData.newPlainText("Image Copied", copiedText);
-
-                clipboardManager.setPrimaryClip(data);
-                Toast.makeText(MainActivity.this,
-                        "Text Copied.", Toast.LENGTH_SHORT).show();
+                 copyText();
             }
         });
     }
 
+
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode , @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if(requestCode==10  && resultCode==RESULT_OK && data!=null)
+        if(requestCode==GALLERY_REQUEST_CODE  && resultCode==RESULT_OK && data!=null)
         {
-            Uri myImage = data.getData();
-            convertingImageToTextFullProcess(getApplicationContext() , myImage);
+            CropImage.activity()
+                    .setGuidelines( CropImageView.Guidelines.ON )
+                    .setAspectRatio(1,1)
+                    .start(this);
+
+            System.out.println("request coede ="+ requestCode);
         }
-        else if(requestCode==TEXT_RECO_REQ_CODE  && resultCode==RESULT_OK && data!=null)
+        else
+        if(requestCode==CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE)
+        {
+            System.out.println("request coede ="+ requestCode);
+            CropImage.ActivityResult result =
+                    CropImage.getActivityResult(data);
+
+            if(resultCode == RESULT_OK )
             {
-                mSelectedImage = (Bitmap)data.getExtras().get("data");
+                myImage = result.getUri();
+
+                convertingImageToTextFullProcess(getApplicationContext() , myImage);
             }
-        else if(resultCode==RESULT_CANCELED)
-        {
-            Toast.makeText(this,
-                    "cancelled by user.", Toast.LENGTH_SHORT).show();
         }
+
+        // for camera image
+//        else if(requestCode==IMAGE_REQUEST_CODE  && resultCode==RESULT_OK && data!=null)
+//            {
+//                CropImage.activity()
+//                        .setGuidelines( CropImageView.Guidelines.ON )
+//                        .setAspectRatio(1,1)
+//                        .start(this);
+//                System.out.println("reuqest code = " + requestCode);
+//                mSelectedImage = (Bitmap)data.getExtras().get("data");
+//
+//            }
+//
+//        else if(resultCode==RESULT_CANCELED)
+//        {
+//            Toast.makeText(this,
+//                    "cancelled by user.", Toast.LENGTH_SHORT).show();
+//        }
         else
         {
             Toast.makeText(this,
@@ -119,10 +144,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
     private void convertingImageToTextFullProcess(Context applicationContext, Uri myImage) {
         try {
-            imageView.setImageURI(myImage);
+
+            Picasso.with(this).load(myImage).into(imageView);
 
             FirebaseVisionImage image =FirebaseVisionImage.fromFilePath(getApplicationContext() ,myImage);
             FirebaseVisionTextRecognizer recognizer = FirebaseVision.getInstance().getOnDeviceTextRecognizer();
@@ -153,7 +178,6 @@ public class MainActivity extends AppCompatActivity {
         FirebaseVisionImage image = null;
         imageView.setImageBitmap(mSelectedImage);
             image = FirebaseVisionImage.fromBitmap(mSelectedImage);
-
         FirebaseVisionTextRecognizer detector = FirebaseVision.getInstance().getOnDeviceTextRecognizer();
 
         detector.processImage(image)
@@ -175,8 +199,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void processImageToText(FirebaseVisionText texts)
-    {
+    public void processImageToText(FirebaseVisionText texts) {
         String text = texts.getText();
         textView.setText(" ");
         for(FirebaseVisionText.TextBlock block : texts.getTextBlocks()){
@@ -202,14 +225,15 @@ public class MainActivity extends AppCompatActivity {
                         "com.example.android.fileprovider",imageFile);
 
                 cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT,imageUri);
+                System.out.println("going to image req onActivirty resuly............./////////////...........//////////");
                 startActivityForResult(cameraIntent , IMAGE_REQUEST_CODE);
+                System.out.println("hm........................");
 
             }
         }
     }
 
-    private File getImageFile() throws IOException
-    {
+    private File getImageFile() throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageName = "jpg_"+timeStamp+"_";
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
@@ -221,11 +245,33 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void show_image(View view) {
+
         Bitmap bitmap = BitmapFactory.decodeFile(currentImagePath);
         imageView.setImageBitmap(bitmap);
         textRecognization(bitmap);
 
     }
+
+    private void copyText() {
+
+        String copiedText = textView.getText().toString();
+
+        ClipboardManager clipboardManager = (ClipboardManager)getSystemService(CLIPBOARD_SERVICE);
+        ClipData data = ClipData.newPlainText("Image Copied", copiedText);
+
+        clipboardManager.setPrimaryClip(data);
+        Toast.makeText(MainActivity.this,
+                "Text Copied.", Toast.LENGTH_SHORT).show();
+    }
+
+    private void initialize() {
+        selectBtn = (Button)findViewById(R.id.id_selet_pic);
+        copyBtn = (Button)findViewById(R.id.id_copy_pic);
+        textView = (TextView)findViewById(R.id.id_tv);
+        imageView = (ImageView)findViewById(R.id.id_imageView);
+
+    }
+
 }
 
 
